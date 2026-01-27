@@ -6,27 +6,43 @@
 trap "" 1 15
 
 # ================= 配置 =================
-IMG_URL="https://i.tsk.im/file/1769529502784_131031517_p0_kindle.png"
-# IMG_URL="http://192.168.x.x:8000/kindle.png" 
-INTERVAL=3600
+IMG_URL="https://i.tsk.im/file/1769535096805_131031517_p0_kindle.png"
+# IMG_URL="http://192.168.x.x:8000/kindle.png"
+
+# 图片刷新间隔 (秒) - 保持你原来的设置
+INTERVAL=300
+
+# 全刷间隔
+FULL_REFRESH_CYCLE=12
 BASE_DIR="/mnt/us/extensions/Kindle-Dashboard"
 FBINK_CMD="${BASE_DIR}/bin/fbink"
 TMP_FILE="/tmp/dashboard_download.png"
 LOG="/tmp/dashboard.log"
-# =======================================
+SAFETY_LOCK="/mnt/us/STOP_DASH"
+ROTATE=3
+
+# =============== [新增] 本地时钟配置 ===============
+ENABLE_LOCAL_CLOCK=1
+# 坐标需根据图片留白位置调整 (Kindle Oasis 2 分辨率 1680x1264)
+# 假设你在左上角留了白
+CLOCK_X=300
+CLOCK_Y=100
+CLOCK_SIZE=80
+# 字体路径 (可选，留空则使用 fbink 默认)
+CLOCK_FONT="${BASE_DIR}/IBMPlexMono-SemiBold.ttf"
+# =================================================
 
 echo "[Daemon] Started with PID $$ (Trapped)" > "$LOG"
 
-# 1. 停止 Framework (此时脚本会收到 SIGTERM 但会忽略)
+# 1. 停止 Framework
 echo "[Daemon] Stopping framework..." >> "$LOG"
 stop framework
 sleep 2
 
-# 2. 疯狂猎杀 (新增 tar 和 gzip)
+# 2. 疯狂猎杀
 echo "[Daemon] Hunting processes..." >> "$LOG"
 
 kill_process_by_keyword() {
-    # 排除 grep 自身
     PIDS=$(ps aux | grep "$1" | grep -v grep | awk '{print $2}')
     if [ -n "$PIDS" ]; then
         echo " -> Killing $1 (PIDs: $PIDS)" >> "$LOG"
@@ -36,27 +52,20 @@ kill_process_by_keyword() {
     fi
 }
 
-# 循环清洗 5 轮，确保杀掉所有复活怪
 for i in 1 2 3 4 5; do
-    # 基础 UI
     killall cvm
     killall KPPMainAppV2
     killall mesquite
     killall awesome
     
-    # ================= Fix 2: 杀掉高 CPU/IO 进程 =================
-    # 你的 ps 显示 gzip 占用了 90% CPU，必须杀
+    # Fix 2: 杀掉高 CPU/IO 进程
     killall gzip 
     killall tar
     
-    # 杀掉崩溃转储脚本
     kill_process_by_keyword "dump-stack"
     kill_process_by_keyword "dmcc.sh"
-    
-    # 杀掉锁屏睡眠
     kill_process_by_keyword "sleep 180"
     
-    # 强制清屏
     $FBINK_CMD -k -f -q
     sleep 1
 done
@@ -66,20 +75,90 @@ echo "[Daemon] Cleanup done. Loop starting..." >> "$LOG"
 # 3. 保持唤醒
 lipc-set-prop com.lab126.powerd preventScreenSaver 1
 
+# 计数器初始化
+COUNT=0
+# 确保第一次运行立即下载
+NEXT_FETCH_TIME=0
+
+sleep 15
+
 # 4. 主循环
 while true; do
-    lipc-set-prop com.lab126.wifid enable 1
-    sleep 5
-    
-    # 下载
-    curl -k -L -s --fail --connect-timeout 20 --retry 2 "${IMG_URL}" -o "$TMP_FILE"
-    RET=$?
-
-    if [ $RET -eq 0 ] && [ -f "$TMP_FILE" ]; then
-        $FBINK_CMD -q -W gc16 -f -g file="$TMP_FILE"
-    else
-        $FBINK_CMD -q -x 0 -y 0 "Err $RET"
+    # 安全阀检查
+    if [ -f "$SAFETY_LOCK" ]; then
+        exit 0
     fi
 
-    sleep "$INTERVAL"
+    # 获取当前 Epoch (用于逻辑判断)
+    CURRENT_EPOCH=$(date +%s)
+    
+    # 旋转屏幕
+    echo $ROTATE > /sys/class/graphics/fb0/rotate
+    
+    # ================= 1. 背景层：图片下载逻辑 =================
+    # 把它移到最前面！
+    # 如果触发了图片刷新，它会铺满屏幕背景
+    if [ $CURRENT_EPOCH -ge $NEXT_FETCH_TIME ]; then
+        
+        # 开启 WiFi
+        lipc-set-prop com.lab126.wifid enable 1
+        sleep 5 # 给 WiFi 一点连接时间
+        
+        # 下载图片
+        curl -k -L -s --fail --max-time 30 --retry 1 "${IMG_URL}" -o "$TMP_FILE"
+        RET=$?
+
+        if [ $RET -eq 0 ] && [ -f "$TMP_FILE" ]; then
+            
+            COUNT=$((COUNT + 1))
+            
+            if [ $COUNT -ge $FULL_REFRESH_CYCLE ]; then
+                # 【全刷模式】
+                $FBINK_CMD -q -W gc16 -f -g file="$TMP_FILE"
+                COUNT=0
+            else
+                # 【局刷模式】
+                # 注意：这里图片会覆盖掉屏幕上已有的任何内容（包括旧时钟）
+                $FBINK_CMD -q -W gl16 -g file="$TMP_FILE"
+            fi
+            
+            # 更新下次下载时间
+            NEXT_FETCH_TIME=$((CURRENT_EPOCH + INTERVAL))
+            
+            # [建议] 下载完立即关闭 WiFi 以省电
+            # lipc-set-prop com.lab126.wifid enable 0
+        else
+            # 错误提示 (画在角落，不影响后续时钟)
+            $FBINK_CMD -q -x 0 -y 0 "Err $RET"
+            # 失败后 60秒 重试
+            NEXT_FETCH_TIME=$((CURRENT_EPOCH + 60))
+        fi
+    fi
+    # ==========================================================
+
+
+    # ================= 2. 前景层：本地时钟逻辑 =================
+    # 无论刚才是否画了图片，这里都要画时钟。
+    # 1. 如果刚才没画图片：这是每分钟的常规更新，覆盖旧时间。
+    # 2. 如果刚才画了图片：图片把旧时间盖住了，这里正好把时间“补”在图片上层。
+    
+    if [ "$ENABLE_LOCAL_CLOCK" -eq 1 ]; then
+        # 重新获取当前时间 (确保如果下载耗时很久，时间依然准确)
+        TIME_STR=$(date "+%H:%M")
+        
+        # 绘制时间，空格保证无残留
+        $FBINK_CMD -q -t "regular=$CLOCK_FONT,size=$CLOCK_SIZE,left=$CLOCK_X,top=$CLOCK_Y" "$TIME_STR "
+    fi
+    # =====================================================
+
+
+    # ================= 3. 智能休眠 =================
+    # 计算距离下一分钟 (:00) 还有多久
+    SEC=$(date +%S)
+    SLEEP_TIME=$((60 - SEC))
+    
+    # 最小休眠1秒
+    if [ $SLEEP_TIME -le 0 ]; then SLEEP_TIME=1; fi
+    
+    sleep "$SLEEP_TIME"
 done
