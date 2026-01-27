@@ -5,9 +5,9 @@
             "priority": 100,
             "items": [
                 {
-                    "name": "Show Dashboard",
+                    "name": "Start Dashboard (No GUI)",
                     "priority": 1,
-                    "action": "/mnt/us/extensions/Kindle-Dashboard/bin/run.sh"
+                    "action": "/mnt/us/extensions/Kindle-Dashboard/bin/boot.sh"
                 }
             ]
         }
