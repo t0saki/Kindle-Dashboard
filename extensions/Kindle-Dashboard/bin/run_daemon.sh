@@ -6,7 +6,7 @@
 trap "" 1 15
 
 # ================= 配置 =================
-IMG_URL="https://i.tsk.im/file/1769535096805_131031517_p0_kindle.png"
+IMG_URL="https://kindledash.t0saki.com/render"
 # IMG_URL="http://192.168.x.x:8000/kindle.png"
 
 # 图片刷新间隔 (秒) - 保持你原来的设置
@@ -25,8 +25,8 @@ ROTATE=3
 ENABLE_LOCAL_CLOCK=1
 # 坐标需根据图片留白位置调整 (Kindle Oasis 2 分辨率 1680x1264)
 # 假设你在左上角留了白
-CLOCK_X=300
-CLOCK_Y=100
+CLOCK_X=50
+CLOCK_Y=295
 CLOCK_SIZE=80
 # 字体路径 (可选，留空则使用 fbink 默认)
 CLOCK_FONT="${BASE_DIR}/IBMPlexMono-SemiBold.ttf"
@@ -155,10 +155,11 @@ while true; do
     # ================= 3. 智能休眠 =================
     # 计算距离下一分钟 (:00) 还有多久
     SEC=$(date +%S)
-    SLEEP_TIME=$((60 - SEC))
-    
+    # Fix: 使用 10#$SEC 强制将 08/09 识别为十进制，否则会被当做无效的八进制
+    SLEEP_TIME=$((60 - 10#$SEC))
+
     # 最小休眠1秒
     if [ $SLEEP_TIME -le 0 ]; then SLEEP_TIME=1; fi
-    
+
     sleep "$SLEEP_TIME"
 done
