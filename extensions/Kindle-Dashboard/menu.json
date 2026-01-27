@@ -1,0 +1,15 @@
+{
+    "items": [
+        {
+            "name": "Kindle-Dashboard",
+            "priority": 100,
+            "items": [
+                {
+                    "name": "Show Dashboard",
+                    "priority": 1,
+                    "action": "/mnt/us/extensions/Kindle-Dashboard/bin/run.sh"
+                }
+            ]
+        }
+    ]
+}
