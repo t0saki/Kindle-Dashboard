@@ -154,12 +154,9 @@ while true; do
 
     # ================= 3. 智能休眠 =================
     # 计算距离下一分钟 (:00) 还有多久
-    SEC=$(date +%S)
-    # Fix: 使用 10#$SEC 强制将 08/09 识别为十进制，否则会被当做无效的八进制
-    SLEEP_TIME=$((60 - 10#$SEC))
-
-    # 最小休眠1秒
-    if [ $SLEEP_TIME -le 0 ]; then SLEEP_TIME=1; fi
-
+    NOW=$(date +%s)
+    SLEEP_TIME=$((60 - (NOW % 60)))
+    [ "$SLEEP_TIME" -le 0 ] && SLEEP_TIME=1
     sleep "$SLEEP_TIME"
+
 done
