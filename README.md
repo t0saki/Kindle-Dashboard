@@ -28,7 +28,7 @@
 
 ## ⚙️ 配置方法
 
-默认配置位于 `extensions/Kindle-Dashboard/bin/run.sh` 文件中。你需要修改以下变量：
+默认配置位于 `extensions/Kindle-Dashboard/bin/run_daemon.sh` 文件中。你需要修改以下变量：
 
 ```bash
 # 图片地址 (请修改为你服务端的实际地址)
@@ -44,8 +44,12 @@ INTERVAL=3600
 
 1.  在 Kindle 上打开 **KUAL**。
 2.  点击 **Kindle-Dashboard** 菜单。
-3.  点击 **Show Dashboard**。
+3.  点击 **Start Dashboard (No GUI)**。
 4.  此时 Kindle 的原生界面将会消失，屏幕将开始刷新你的仪表盘图片。
+
+> **⚠️ 注意**：启动时，屏幕可能会多次闪烁，并可能出现一些临时的报错信息（脚本正在清理后台进程）。这是正常现象，请耐心等待约 **1 分钟** 让服务完全启动。
+
+**已验证设备**：本项目已在 **Kindle Oasis 2** 上通过测试。
 
 **如何退出？**
 由于脚本杀死了原生 Framework (`stop framework`)，你需要**长按 Kindle 电源键**重启设备才能恢复到正常的阅读模式。

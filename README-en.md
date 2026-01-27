@@ -27,7 +27,7 @@ A simple KUAL extension that turns your jailbroken Kindle into a low-power e-ink
 
 ## ⚙️ Configuration
 
-The default configuration is located in `extensions/Kindle-Dashboard/bin/run.sh`. You need to modify the following variables:
+The default configuration is located in `extensions/Kindle-Dashboard/bin/run_daemon.sh`. You need to modify the following variables:
 
 ```bash
 # Image URL (Change this to your actual server address)
@@ -43,8 +43,12 @@ INTERVAL=3600
 
 1.  Open **KUAL** on your Kindle.
 2.  Tap on the **Kindle-Dashboard** menu.
-3.  Tap **Show Dashboard**.
+3.  Tap **Start Dashboard (No GUI)**.
 4.  The native Kindle interface will disappear, and the screen will start refreshing with your dashboard image.
+
+> **⚠️ Note**: During startup, the screen may flash multiple times, and you might see some temporary error messages (the script is cleaning up background processes). This is normal behavior. Please wait for about **1 minute** for the service to fully start.
+
+**Verified Device**: This project has been tested on **Kindle Oasis 2**.
 
 **How to Exit?**
 Since the script kills the native Framework (`stop framework`), you need to **long-press the Kindle power button** to restart the device and restore normal reading mode.
