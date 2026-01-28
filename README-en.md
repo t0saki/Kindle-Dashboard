@@ -116,3 +116,7 @@ python convert_kindle_image.py your_image.png
 ## ⚠️ Disclaimer
 
 This project requires a jailbroken device and modifies system processes. While generally safe, please modify your system at your own risk. The author is not responsible for any device damage.
+
+## 📄 License
+
+This project is licensed under the MIT License. The license of FBInk is please refer to [FBInk](https://github.com/NiLuJe/FBInk).

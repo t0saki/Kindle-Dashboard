@@ -117,3 +117,7 @@ python convert_kindle_image.py your_image.png
 ## ⚠️ 免责声明
 
 本项目需要越狱设备并修改系统进程。虽然一般来说是安全的，但请自行承担修改系统带来的风险。作者不对设备损坏负责。
+
+## 📄 许可证
+
+本项目采用 MIT License 许可证。其中FBInk的许可证请参考 [FBInk](https://github.com/NiLuJe/FBInk)。
