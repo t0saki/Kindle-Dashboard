@@ -30,6 +30,8 @@ CLOCK_Y=295
 CLOCK_SIZE=80
 # 字体路径 (可选，留空则使用 fbink 默认)
 CLOCK_FONT="${BASE_DIR}/IBMPlexMono-SemiBold.ttf"
+# 时间格式: 12 或 24
+TIME_FORMAT=12
 # =================================================
 
 echo "[Daemon] Started with PID $$ (Trapped)" > "$LOG"
@@ -144,7 +146,11 @@ while true; do
     
     if [ "$ENABLE_LOCAL_CLOCK" -eq 1 ]; then
         # 重新获取当前时间 (确保如果下载耗时很久，时间依然准确)
-        TIME_STR=$(date "+%H:%M")
+        if [ "$TIME_FORMAT" -eq 12 ]; then
+            TIME_STR=$(date "+%I:%M")
+        else
+            TIME_STR=$(date "+%H:%M")
+        fi
         
         # 绘制时间，空格保证无残留
         $FBINK_CMD -q -t "regular=$CLOCK_FONT,size=$CLOCK_SIZE,left=$CLOCK_X,top=$CLOCK_Y" "$TIME_STR "
