@@ -4,6 +4,8 @@
 
 A simple KUAL extension that turns your jailbroken Kindle into a low-power e-ink dashboard. It periodically downloads an image from a specified URL and displays it on the screen.
 
+![Real Shot](demo_shot.avif)
+
 ## ✨ Features
 
 *   **Exclusive Mode**: Automatically stops the native Kindle Framework to prevent interface interference or sleep mode, taking full control of the screen.
