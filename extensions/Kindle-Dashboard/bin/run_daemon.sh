@@ -6,7 +6,7 @@
 trap "" 1 15
 
 # ================= 配置 =================
-IMG_URL="https://kindledash.t0saki.com/render"
+IMG_URL="https://i.tsk.im/file/1769588501760_test_output_dashboard.png"
 # IMG_URL="http://192.168.x.x:8000/kindle.png"
 
 # 图片刷新间隔 (秒) - 保持你原来的设置
