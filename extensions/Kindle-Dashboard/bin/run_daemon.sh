@@ -25,7 +25,7 @@ ROTATE=3
 ENABLE_LOCAL_CLOCK=1
 # 坐标需根据图片留白位置调整 (Kindle Oasis 2 分辨率 1680x1264)
 # 假设你在左上角留了白
-CLOCK_X=50
+CLOCK_X=40
 CLOCK_Y=295
 CLOCK_SIZE=80
 # 字体路径 (可选，留空则使用 fbink 默认)
