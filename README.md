@@ -15,7 +15,18 @@
 *   **智能休眠**：脚本会自动对齐系统时间，在每分钟的 00 秒唤醒刷新时钟，最大程度节省电量。
 *   **图片预处理工具**：附带 Python 脚本，用于将普通图片转换为最适合 Kindle 显示的 16 级灰度抖动图像。
 
-## 🛠️ 前置要求
+## 🖥️ 配套服务端
+
+为了充分发挥本插件的潜力，建议配合专门开发的 **Kindle Dashboard Server** 使用：
+
+*   **项目地址**: [https://github.com/t0saki/Kindle-Dashboard-Server](https://github.com/t0saki/Kindle-Dashboard-Server)
+*   **功能**:
+    *   **专为 Kindle 优化**: 渲染 1680x1264 高分辨率、16级灰度抖动图像，完美适配 E-ink 屏。
+    *   **丰富数据**: 集成天气、空气质量、日历、股票/加密货币走势、Hacker News 等信息。
+    *   **高度定制**: 支持多语言、全球天气、自定义布局。
+    *   **易于部署**: 支持 Docker 一键部署。
+
+## �🛠️ 前置要求
 
 1.  **Kindle 已越狱**。
 2.  已安装 **KUAL** (Kindle Unified Application Launcher)。

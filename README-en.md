@@ -15,6 +15,17 @@ A simple KUAL extension that turns your jailbroken Kindle into a low-power e-ink
 *   **Smart Sleep**: Automatically aligns with the system clock to wake up exactly at the 00th second of every minute, maximizing battery life.
 *   **Image Processing Tool**: Includes a Python script to convert standard images into 16-level grayscale dithered images optimized for Kindle displays.
 
+## 🖥️ Server Companion
+
+To unlock the full potential of this extension, it is highly recommended to use it with the dedicated **Kindle Dashboard Server**:
+
+*   **Repository**: [https://github.com/t0saki/Kindle-Dashboard-Server](https://github.com/t0saki/Kindle-Dashboard-Server)
+*   **Features**:
+    *   **Optimized for Kindle**: Renders 1680x1264 high-res, 16-level grayscale dithered images perfect for E-ink screens.
+    *   **Rich Data**: Integrates weather, AQI, calendar, stocks/crypto trends, Hacker News, and more.
+    *   **Highly Customizable**: Supports multi-language, global weather, and custom layouts.
+    *   **Easy Deployment**: Supports one-click Docker deployment.
+
 ## 🛠️ Prerequisites
 
 1.  **Jailbroken Kindle**.
