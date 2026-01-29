@@ -19,6 +19,7 @@ FBINK_CMD="${BASE_DIR}/bin/fbink"
 TMP_FILE="/tmp/dashboard_download.png"
 LOG="/tmp/dashboard.log"
 SAFETY_LOCK="/mnt/us/STOP_DASH"
+PING_TARGET="223.5.5.5" 
 ROTATE=3
 
 # =============== [新增] 本地时钟配置 ===============
@@ -93,20 +94,33 @@ while true; do
 
     # 获取当前 Epoch (用于逻辑判断)
     CURRENT_EPOCH=$(date +%s)
-    
+
     # 旋转屏幕
     echo $ROTATE > /sys/class/graphics/fb0/rotate
+
+    # ================= 网络看门狗逻辑 =================
+    # 每次循环都先 ping 一下。
+    # 作用1: Keep-Alive (防止网卡休眠)
+    # 作用2: Health Check (检测是否断连)
     
-    # ================= 1. 背景层：图片下载逻辑 =================
-    # 把它移到最前面！
-    # 如果触发了图片刷新，它会铺满屏幕背景
+    ping -c 3 -W 5 "$PING_TARGET" > /dev/null 2>&1
+    PING_RET=$?
+
+    if [ $PING_RET -ne 0 ]; then
+        echo "[Warn] Network lost (Ping $PING_RET). Restarting WiFi..." >> "$LOG"
+        
+        # --- 核弹级重连 ---
+        lipc-set-prop com.lab126.wifid enable 0
+        sleep 2
+        lipc-set-prop com.lab126.wifid enable 1
+        sleep 10 # 必须给够时间重新握手 DHCP
+        # ------------------
+    fi
+
+    # ================= 图片下载逻辑 =================
     if [ $CURRENT_EPOCH -ge $NEXT_FETCH_TIME ]; then
         
-        # 开启 WiFi
-        lipc-set-prop com.lab126.wifid enable 1
-        sleep 5 # 给 WiFi 一点连接时间
-        
-        # 下载图片
+        # 既然前面有看门狗，这里直接 curl
         curl -k -L -s --fail --max-time 30 --retry 1 "${IMG_URL}" -o "$TMP_FILE"
         RET=$?
 
@@ -126,14 +140,15 @@ while true; do
             
             # 更新下次下载时间
             NEXT_FETCH_TIME=$((CURRENT_EPOCH + INTERVAL))
-            
-            # [建议] 下载完立即关闭 WiFi 以省电
-            # lipc-set-prop com.lab126.wifid enable 0
         else
-            # 错误提示 (画在角落，不影响后续时钟)
+            # 下载失败
+            echo "[Err] Curl failed ($RET)" >> "$LOG"
             $FBINK_CMD -q -x 0 -y 0 "Err $RET"
-            # 失败后 60秒 重试
-            NEXT_FETCH_TIME=$((CURRENT_EPOCH + 60))
+            
+            # 缩短重试时间，不要等 5 分钟
+            NEXT_FETCH_TIME=$((CURRENT_EPOCH + 30))
+            
+            # 这里不需要再重启 WiFi 了，因为下一次循环开头的 Ping 会负责重启
         fi
     fi
     # ==========================================================
@@ -164,5 +179,5 @@ while true; do
     SLEEP_TIME=$((60 - (NOW % 60)))
     [ "$SLEEP_TIME" -le 0 ] && SLEEP_TIME=1
     sleep "$SLEEP_TIME"
-
+    
 done
