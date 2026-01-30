@@ -81,7 +81,7 @@ CLOCK_SIZE=80
 
 > **⚠️ Note**: During startup, the screen may flash multiple times, and you might see some temporary error messages (the script is cleaning up background processes). This is normal behavior. Please wait for about **1 minute** for the service to fully start.
 
-**Verified Device**: This project has been tested on **Kindle Oasis 2**.
+**Verified Device**: This project has been tested on **Kindle Oasis 2** and **Kindle Paperwhite 3**. Please note that **Kindle Paperwhite 3** has different rotation parameters, 2 is landscape.
 
 **How to Exit?**
 Since the script kills the native Framework (`stop framework`), you need to **long-press the Kindle power button** to restart the device and restore normal reading mode.
