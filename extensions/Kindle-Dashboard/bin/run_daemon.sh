@@ -33,6 +33,12 @@ CLOCK_SIZE=80
 CLOCK_FONT="${BASE_DIR}/IBMPlexMono-SemiBold.ttf"
 # 时间格式: 12 或 24
 TIME_FORMAT=12
+
+# [新增] 连续失败计数器
+FAIL_COUNT=0
+# [新增] 最大允许失败次数 (比如 5分钟一次，连续失败 12次 = 1小时)
+MAX_FAIL_COUNT=6
+
 # =================================================
 
 echo "[Daemon] Started with PID $$ (Trapped)" > "$LOG"
@@ -92,10 +98,12 @@ while true; do
         exit 0
     fi
 
-    # 获取当前 Epoch (用于逻辑判断)
     CURRENT_EPOCH=$(date +%s)
-
-    # 旋转屏幕
+    
+    # [Fix 2] 每次循环强制刷新电源锁，防止 Powerd 24小时后“遗忘”
+    lipc-set-prop com.lab126.powerd preventScreenSaver 1
+    iw wlan0 set power_save off
+    
     echo $ROTATE > /sys/class/graphics/fb0/rotate
 
     # ================= 网络看门狗逻辑 =================
@@ -107,21 +115,48 @@ while true; do
     PING_RET=$?
 
     if [ $PING_RET -ne 0 ]; then
-        echo "[Warn] Network lost (Ping $PING_RET). Restarting WiFi..." >> "$LOG"
+        FAIL_COUNT=$((FAIL_COUNT + 1))
+        echo "[Warn] Network lost (Ping $PING_RET). Fail count: $FAIL_COUNT" >> "$LOG"
         
-        # --- 核弹级重连 ---
-        lipc-set-prop com.lab126.wifid enable 0
-        sleep 2
-        lipc-set-prop com.lab126.wifid enable 1
-        sleep 10 # 必须给够时间重新握手 DHCP
-        # ------------------
+        # 显示一个小的 WiFi 丢失图标或文字 (可选)
+        # $FBINK_CMD -q -x 0 -y 0 "WiFi Lost $FAIL_COUNT"
+
+        if [ $FAIL_COUNT -ge $MAX_FAIL_COUNT ]; then
+            echo "[Fatal] Network dead for too long. Rebooting device..." >> "$LOG"
+            # 绝杀：如果网络挂了1小时，直接重启系统以重置网卡驱动状态
+            reboot
+        fi
+
+        # --- 第一阶段：尝试温和重连 (L2 Reconnect) ---
+        echo "[Fix] Trying wpa_cli reconnect..." >> "$LOG"
+        wpa_cli -i wlan0 reconnect
+        sleep 5
+        
+        # --- 第二阶段：强制 DHCP 续约 (L3 Renew) [关键点] ---
+        # 很多时候是 IP 丢了而不是 WiFi 断了
+        echo "[Fix] Renewing DHCP..." >> "$LOG"
+        udhcpc -i wlan0 -n -t 5 -q
+        
+        # --- 第三阶段：如果还不行，核弹级重置网卡 ---
+        # 仅在失败次数较多时执行，避免频繁开关
+        if [ $FAIL_COUNT -gt 2 ]; then
+             echo "[Fix] Resetting wifid..." >> "$LOG"
+             lipc-set-prop com.lab126.wifid enable 0
+             sleep 2
+             lipc-set-prop com.lab126.wifid enable 1
+             sleep 15 # 给够时间重新协商
+        fi
+
+    else
+        # 网络正常，重置计数器
+        FAIL_COUNT=0
     fi
 
     # ================= 图片下载逻辑 =================
     if [ $CURRENT_EPOCH -ge $NEXT_FETCH_TIME ]; then
-        
-        # 既然前面有看门狗，这里直接 curl
-        curl -k -L -s --fail --max-time 30 --retry 1 "${IMG_URL}" -o "$TMP_FILE"
+        # 只有当网络看起来正常(或刚尝试修复后)才下载
+        # 增加 connect-timeout 防止 curl 卡死太久
+        curl -k -L -s --fail --connect-timeout 20 --max-time 60 --retry 1 "${IMG_URL}" -o "$TMP_FILE"
         RET=$?
 
         if [ $RET -eq 0 ] && [ -f "$TMP_FILE" ]; then
@@ -140,15 +175,15 @@ while true; do
             
             # 更新下次下载时间
             NEXT_FETCH_TIME=$((CURRENT_EPOCH + INTERVAL))
+            
+            # 下载成功也清零失败计数
+            FAIL_COUNT=0
         else
             # 下载失败
             echo "[Err] Curl failed ($RET)" >> "$LOG"
             $FBINK_CMD -q -x 0 -y 0 "Err $RET"
-            
-            # 缩短重试时间，不要等 5 分钟
-            NEXT_FETCH_TIME=$((CURRENT_EPOCH + 30))
-            
-            # 这里不需要再重启 WiFi 了，因为下一次循环开头的 Ping 会负责重启
+            # 缩短重试时间
+            NEXT_FETCH_TIME=$((CURRENT_EPOCH + 60))
         fi
     fi
     # ==========================================================
